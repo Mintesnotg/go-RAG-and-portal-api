@@ -40,6 +40,8 @@ func main() {
 
 	router := gin.Default()
 
+	router.Use(middleware.CORSMiddleware())
+
 	userRepo := repositories.NewUserRepository(conn)
 	authService := services.NewAuthService(userRepo)
 	roleService := services.NewRoleService(userRepo)
