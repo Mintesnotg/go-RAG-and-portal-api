@@ -18,7 +18,7 @@ var (
 
 type AuthService interface {
 	Register(email, password string) (*models.User, error)
-	Login(email, password string) (string, error)
+	Login(email, password string) (string, []string, error)
 }
 
 type authService struct {
@@ -58,27 +58,42 @@ func (s *authService) Register(email, password string) (*models.User, error) {
 	return user, nil
 }
 
-func (s *authService) Login(email, password string) (string, error) {
+func (s *authService) Login(email, password string) (string, []string, error) {
 	user, err := s.userRepo.FindByEmail(email)
 	if err != nil {
 		if err == repositories.ErrNotFound {
-			return "", ErrInvalidCredential
+			return "", nil, ErrInvalidCredential
 		}
-		return "", err
+		return "", nil, err
 	}
 
 	if !utils.VerifyPassword(password, user.PasswordHash) {
-		return "", ErrInvalidCredential
+		return "", nil, ErrInvalidCredential
 	}
 
-	token, err := utils.GenerateJWT(user.ID, user.Email, time.Hour)
+	roles, err := s.userRepo.GetRolesByUserID(user.ID)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	return token, nil
+	roleNames := roleNames(roles)
+
+	token, err := utils.GenerateJWT(user.ID, user.Email, roleNames, time.Hour)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return token, roleNames, nil
 }
 
 func isValidEmail(email string) bool {
 	return len(email) >= 3 && strings.Contains(email, "@")
+}
+
+func roleNames(roles []models.Role) []string {
+	names := make([]string, 0, len(roles))
+	for _, r := range roles {
+		names = append(names, r.Name)
+	}
+	return names
 }

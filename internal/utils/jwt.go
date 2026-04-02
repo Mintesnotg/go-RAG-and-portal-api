@@ -12,8 +12,9 @@ var ErrInvalidToken = errors.New("invalid token")
 
 // Claims defines the JWT payload.
 type Claims struct {
-	UserID string `json:"uid"`
-	Email  string `json:"email"`
+	UserID string   `json:"uid"`
+	Email  string   `json:"email"`
+	Roles  []string `json:"roles"`
 	jwt.RegisteredClaims
 }
 
@@ -24,10 +25,11 @@ func secretKey() []byte {
 	return []byte("dev-secret-change-me")
 }
 
-func GenerateJWT(userID, email string, expiresIn time.Duration) (string, error) {
+func GenerateJWT(userID, email string, roles []string, expiresIn time.Duration) (string, error) {
 	claims := Claims{
 		UserID: userID,
 		Email:  email,
+		Roles:  roles,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiresIn)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
